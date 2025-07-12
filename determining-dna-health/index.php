@@ -34,12 +34,12 @@ for ($s_itr = 0; $s_itr < $s; $s_itr++) {
             break;
         }
 
-//        if (
-//            ($geneLength === $strandLength)
-//            && ($gene !== $d)
-//        ) {
-//            break;
-//        }
+        if (
+            ($geneLength === $strandLength)
+            && ($gene !== $d)
+        ) {
+            continue;
+        }
 
         while (($pos = strpos($d, $gene, $offset)) !== false) {
             // found first occurrence
