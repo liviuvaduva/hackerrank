@@ -27,6 +27,20 @@ for ($s_itr = 0; $s_itr < $s; $s_itr++) {
         $gene = $genes[$i];
         $offset = 0;
 
+        $geneLength = strlen($gene);
+        $strandLength = strlen($d);
+
+        if ($geneLength > $strandLength) {
+            break;
+        }
+
+//        if (
+//            ($geneLength === $strandLength)
+//            && ($gene !== $d)
+//        ) {
+//            break;
+//        }
+
         while (($pos = strpos($d, $gene, $offset)) !== false) {
             // found first occurrence
             $geneHealth = $health[$i];
