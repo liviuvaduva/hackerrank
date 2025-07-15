@@ -134,9 +134,16 @@ for ($i = 0; $i < $n; $i++) {
     $prefix[$idx][] = ($prefix[$idx] ? end($prefix[$idx]) : 0) + $health[$i];
 }
 
+$start = microtime(true);
 $ac->build();
+$stop = microtime(true);
+
+printf("Build duration: %f\n", number_format($stop - $start, 6));
+
 $min = PHP_INT_MAX;
 $max = PHP_INT_MIN;
+
+$start = microtime(true);
 
 for ($i = 0; $i < $s; $i++) {
     [$first, $last, $d] = explode(' ', trim(fgets(STDIN)));
@@ -150,5 +157,8 @@ for ($i = 0; $i < $s; $i++) {
         $max = $score;
     }
 }
+
+$stop = microtime(true);
+printf("Search duration: %f\n", number_format($stop - $start, 6));
 
 echo "$min $max\n";
