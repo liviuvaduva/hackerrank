@@ -2,21 +2,21 @@
 
 class TrieNode
 {
-    public $children = [];
+    public array $children = [];
     public $fail = null;
-    public $output = [];
+    public array $output = [];
 }
 
 class AhoCorasick
 {
-    public $root;
+    public TrieNode $root;
 
     public function __construct()
     {
         $this->root = new TrieNode();
     }
 
-    public function add($word, $index)
+    public function add($word, $index): void
     {
         $node = $this->root;
         for ($i = 0, $len = strlen($word); $i < $len; $i++) {
@@ -29,9 +29,10 @@ class AhoCorasick
         $node->output[] = $index;
     }
 
-    public function build()
+    public function build(): void
     {
         $queue = [];
+
         foreach ($this->root->children as $child) {
             $child->fail = $this->root;
             $queue[] = $child;
@@ -39,13 +40,16 @@ class AhoCorasick
 
         while ($queue) {
             $current = array_shift($queue);
+
             foreach ($current->children as $char => $child) {
                 $fail = $current->fail;
+
                 while ($fail && !isset($fail->children[$char])) {
                     $fail = $fail->fail;
                 }
+
                 $child->fail = $fail ? $fail->children[$char] : $this->root;
-                $child->output = array_merge($child->output, $child->fail->output);
+                $child->output = [...$child->output, ...$child->fail->output];
                 $queue[] = $child;
             }
         }
