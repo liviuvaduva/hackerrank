@@ -1,67 +1,150 @@
 <?php
 
+class TrieNode
+{
+    public $children = [];
+    public $fail = null;
+    public $output = [];
+}
 
-$n = (int)trim(fgets(STDIN));
+class AhoCorasick
+{
+    public $root;
 
-$genes_temp = rtrim(fgets(STDIN));
-$genes = preg_split('/ /', $genes_temp, -1, PREG_SPLIT_NO_EMPTY);
+    public function __construct()
+    {
+        $this->root = new TrieNode();
+    }
 
-$health_temp = rtrim(fgets(STDIN));
-$health = array_map('intval', preg_split('/ /', $health_temp, -1, PREG_SPLIT_NO_EMPTY));
+    public function add($word, $index)
+    {
+        $node = $this->root;
+        for ($i = 0, $len = strlen($word); $i < $len; $i++) {
+            $c = $word[$i];
+            if (!isset($node->children[$c])) {
+                $node->children[$c] = new TrieNode();
+            }
+            $node = $node->children[$c];
+        }
+        $node->output[] = $index;
+    }
 
-$s = (int)trim(fgets(STDIN));
-$totalHealth = [];
-
-for ($s_itr = 0; $s_itr < $s; $s_itr++) {
-    $first_multiple_input = explode(' ', rtrim(fgets(STDIN)));
-
-    $first = (int)$first_multiple_input[0];
-    $last = (int)$first_multiple_input[1];
-
-    $d = $first_multiple_input[2];
-
-    $strandHealth = 0;
-    $start = microtime(true);
-
-    for ($i = $first; $i <= $last; $i++) {
-        $gene = $genes[$i];
-        $offset = 0;
-
-        $geneLength = strlen($gene);
-        $strandLength = strlen($d);
-
-        if ($geneLength > $strandLength) {
-            break;
+    public function build()
+    {
+        $queue = [];
+        foreach ($this->root->children as $child) {
+            $child->fail = $this->root;
+            $queue[] = $child;
         }
 
-        if (
-            ($geneLength === $strandLength)
-            && ($gene !== $d)
-        ) {
-            continue;
-        }
-
-        while (($pos = strpos($d, $gene, $offset)) !== false) {
-            // found first occurrence
-            $geneHealth = $health[$i];
-            $offset = $pos + 1;
-
-            $strandHealth += $geneHealth;
-
-            /* printf(
-                "genes: [%s] health: [%s] target: [%s] first: %d last: %d strand: %s gene: %s geneHealth: %d strandHealth: %d\n",
-                implode(',', $genes), implode(',', $health), implode(',', $target), $first, $last, $d, $gene, $geneHealth, $strandHealth
-            ); */
-
-            if ($offset >= $last) {
-                break;
+        while ($queue) {
+            $current = array_shift($queue);
+            foreach ($current->children as $char => $child) {
+                $fail = $current->fail;
+                while ($fail && !isset($fail->children[$char])) {
+                    $fail = $fail->fail;
+                }
+                $child->fail = $fail ? $fail->children[$char] : $this->root;
+                $child->output = array_merge($child->output, $child->fail->output);
+                $queue[] = $child;
             }
         }
     }
 
-    $totalHealth[] = $strandHealth;
-    $stop = microtime(true);
-    printf("Strand %d/%d time %f\n", $s_itr, $s, $stop - $start);
+    public function search($text, $positions, $prefix, $first, $last)
+    {
+        $node = $this->root;
+        $total = 0;
+        $len = strlen($text);
+        for ($i = 0; $i < $len; $i++) {
+            $c = $text[$i];
+            while ($node !== $this->root && !isset($node->children[$c])) {
+                $node = $node->fail;
+            }
+            if (isset($node->children[$c])) {
+                $node = $node->children[$c];
+            }
+            $out = $node->output;
+            for ($j = 0, $m = count($out); $j < $m; $j++) {
+                $idx = $out[$j];
+                $posList = $positions[$idx];
+                $preList = $prefix[$idx];
+                $left = self::lower($posList, $first);
+                $right = self::upper($posList, $last);
+                if ($right > $left) {
+                    $total += $preList[$right - 1];
+                    if ($left > 0) $total -= $preList[$left - 1];
+                }
+            }
+        }
+        return $total;
+    }
+
+    private static function lower($arr, $target)
+    {
+        $lo = 0;
+        $hi = count($arr);
+        while ($lo < $hi) {
+            $mid = ($lo + $hi) >> 1;
+            if ($arr[$mid] < $target) $lo = $mid + 1;
+            else $hi = $mid;
+        }
+        return $lo;
+    }
+
+    private static function upper($arr, $target)
+    {
+        $lo = 0;
+        $hi = count($arr);
+        while ($lo < $hi) {
+            $mid = ($lo + $hi) >> 1;
+            if ($arr[$mid] <= $target) $lo = $mid + 1;
+            else $hi = $mid;
+        }
+        return $lo;
+    }
 }
 
-printf("%d %d\n", min($totalHealth), max($totalHealth));
+$n = (int)trim(fgets(STDIN));
+$genes = explode(' ', trim(fgets(STDIN)));
+$health = array_map('intval', explode(' ', trim(fgets(STDIN))));
+$s = (int)trim(fgets(STDIN));
+
+$geneToIndex = [];
+$positions = [];
+$prefix = [];
+$ac = new AhoCorasick();
+
+for ($i = 0; $i < $n; $i++) {
+    $g = $genes[$i];
+
+    if (!isset($geneToIndex[$g])) {
+        $geneToIndex[$g] = count($geneToIndex);
+        $ac->add($g, $geneToIndex[$g]);
+        $positions[$geneToIndex[$g]] = [];
+        $prefix[$geneToIndex[$g]] = [];
+    }
+
+    $idx = $geneToIndex[$g];
+    $positions[$idx][] = $i;
+    $prefix[$idx][] = ($prefix[$idx] ? end($prefix[$idx]) : 0) + $health[$i];
+}
+
+$ac->build();
+$min = PHP_INT_MAX;
+$max = PHP_INT_MIN;
+
+for ($i = 0; $i < $s; $i++) {
+    [$first, $last, $d] = explode(' ', trim(fgets(STDIN)));
+    $score = $ac->search($d, $positions, $prefix, (int)$first, (int)$last);
+
+    if ($score < $min) {
+        $min = $score;
+    }
+
+    if ($score > $max) {
+        $max = $score;
+    }
+}
+
+echo "$min $max\n";
