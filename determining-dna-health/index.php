@@ -35,10 +35,17 @@ class AhoCorasick
     {
         $queue = [];
 
+        $start = microtime(true);
+
         foreach ($this->root->children as $child) {
             $child->fail = $this->root;
             $queue[] = $child;
         }
+
+        $stop = microtime(true);
+        printf("Queue build time: %f\n", number_format($stop - $start, 6));
+
+        $start = microtime(true);
 
         while ($queue) {
             $current = array_shift($queue);
@@ -55,6 +62,9 @@ class AhoCorasick
                 $queue[] = $child;
             }
         }
+
+        $stop = microtime(true);
+        printf("Queue bullshit time: %f\n", number_format($stop - $start, 6));
     }
 
     public function search($text, $positions, $prefix, $first, $last)
