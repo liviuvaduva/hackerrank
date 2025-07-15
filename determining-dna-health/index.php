@@ -19,6 +19,7 @@ class AhoCorasick
     public function add($word, $index): void
     {
         $node = $this->root;
+
         for ($i = 0, $len = strlen($word); $i < $len; $i++) {
             $c = $word[$i];
             if (!isset($node->children[$c])) {
@@ -26,6 +27,7 @@ class AhoCorasick
             }
             $node = $node->children[$c];
         }
+
         $node->output[] = $index;
     }
 
@@ -60,24 +62,33 @@ class AhoCorasick
         $node = $this->root;
         $total = 0;
         $len = strlen($text);
+
         for ($i = 0; $i < $len; $i++) {
             $c = $text[$i];
+
             while ($node !== $this->root && !isset($node->children[$c])) {
                 $node = $node->fail;
             }
+
             if (isset($node->children[$c])) {
                 $node = $node->children[$c];
             }
+
             $out = $node->output;
+
             for ($j = 0, $m = count($out); $j < $m; $j++) {
                 $idx = $out[$j];
                 $posList = $positions[$idx];
                 $preList = $prefix[$idx];
                 $left = self::lower($posList, $first);
                 $right = self::upper($posList, $last);
+
                 if ($right > $left) {
                     $total += $preList[$right - 1];
-                    if ($left > 0) $total -= $preList[$left - 1];
+
+                    if ($left > 0) {
+                        $total -= $preList[$left - 1];
+                    }
                 }
             }
         }
